@@ -1,0 +1,43 @@
+flowchart TB
+    RAW["raw/ (PDF, PNG, CSV)"]:::src
+    S3RAW["Amazon S3 raw<br/>imutavel + KMS + versionamento"]:::storage
+    EB["Amazon EventBridge"]:::orch
+    SF["AWS Step Functions<br/>roteia por tipo"]:::orch
+
+    subgraph TRILHAS["Trilhas por formato"]
+        direction TB
+        PDF["PDF digital<br/>Lambda le texto direto (sem OCR)"]:::proc
+        PNG["PNG escaneado<br/>Amazon Textract (OCR + manuscrito + tabela)"]:::proc
+        CSV["CSV do CRM<br/>Glue Data Catalog + Athena<br/>+ Lambda gera fichas em texto"]:::proc
+    end
+
+    NORM["Lambda normaliza texto"]:::proc
+    BED["Amazon Bedrock<br/>enriquece e classifica"]:::ai
+    DDB["Amazon DynamoDB<br/>metadados + versionId"]:::storage
+    CUR["Amazon S3 curated"]:::storage
+    KB["Amazon Bedrock Knowledge Bases"]:::ai
+    OSS["OpenSearch Serverless<br/>base vetorial"]:::storage
+    UI["Interface<br/>Q Business ou Amplify+API GW+Lambda<br/>+ Amazon Cognito"]:::ui
+    USER["Usuario<br/>pergunta em linguagem natural<br/>resposta com citacao da fonte"]:::src
+
+    GOV["Transversal: IAM, KMS, CloudTrail, CloudWatch, Macie, Cost Explorer/Budgets"]:::gov
+
+    RAW --> S3RAW --> EB --> SF
+    SF --> PDF
+    SF --> PNG
+    SF --> CSV
+    PDF --> NORM
+    PNG --> NORM
+    CSV --> NORM
+    NORM --> BED
+    BED --> DDB
+    BED --> CUR --> KB --> OSS
+    KB --> UI --> USER
+
+    classDef src fill:#e8f0fe,stroke:#3367d6,color:#111,stroke-width:1px;
+    classDef storage fill:#e6f4ea,stroke:#137333,color:#111,stroke-width:1px;
+    classDef orch fill:#fff4e5,stroke:#e8710a,color:#111,stroke-width:1px;
+    classDef proc fill:#fef7e0,stroke:#b06000,color:#111,stroke-width:1px;
+    classDef ai fill:#f3e8fd,stroke:#8430ce,color:#111,stroke-width:1px;
+    classDef ui fill:#e0f7fa,stroke:#00838f,color:#111,stroke-width:1px;
+    classDef gov fill:#fce8e6,stroke:#c5221f,color:#111,stroke-width:1px;
